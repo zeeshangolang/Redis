@@ -1,0 +1,29 @@
+
+// The ArrToString takes value from ReturnStringONly and convert it to
+// single string
+func ArrToSTring(array []string) string {
+	var SingleString string
+	SingleString = array[0]
+	for _, val := range array {
+
+		SingleString = fmt.Sprintf("%s", SingleString+val)
+	}
+	return SingleString[1:]
+}
+
+//ReturnSTringOnly takes a string and remove WhiteSPaces
+//and return characters as individula in array
+
+func ReturnStringsOnly(s string) []string {
+
+	arr := []string{}
+	for _, val := range s {
+		if val == 32 {
+
+			continue
+		}
+		arr = append(arr, string(val))
+
+	}
+	return arr
+}
