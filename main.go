@@ -16,9 +16,11 @@ type RedisFuncs func(string) func()
 // Update Commands will
 var mu sync.Mutex
 
+//var z func()
+
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
-
+	TTLMap := make(map[string]time.Time)
 	Redis := make(map[string]any)
 
 	for scanner.Scan() {
@@ -26,7 +28,7 @@ func main() {
 		TEXT := scanner.Text()
 		Mtext := strings.Fields(TEXT)
 
-		AllFunc(Mtext, Redis)
+		AllFunc(Mtext, Redis, TTLMap)
 	}
 	if err := scanner.Err(); err != nil {
 		fmt.Print(err)
@@ -34,7 +36,7 @@ func main() {
 
 }
 
-func AllFunc(InputValues []string, MAp map[string]any) any {
+func AllFunc(InputValues []string, MAp map[string]any, TTLMAP map[string]time.Time) any {
 
 	var ReturnVal any
 
@@ -68,10 +70,21 @@ func AllFunc(InputValues []string, MAp map[string]any) any {
 		ExpireInt, err := strconv.Atoi(InputValues[2])
 		if err != nil {
 			fmt.Print("please use correct values for expiry")
+			break
 		}
 
-		val := AddEXpiry(InputValues[1], ExpireInt, MAp)
+		val := AddEXpiry(InputValues[1], ExpireInt, MAp, TTLMAP)
 		fmt.Print(val)
+	case length == 2 && InputValues[0] == "TTL":
+		value := GetTTL(InputValues[1], TTLMAP)
+		diff := value.Sub(time.Now())
+		seec := diff.Seconds()
+		whole := int(seec)
+		if whole < 1 {
+			fmt.Print("expired")
+			break
+		}
+		fmt.Print("\n", whole, "\n")
 	default:
 		fmt.Print("no command found\n")
 	}
@@ -80,7 +93,7 @@ func AllFunc(InputValues []string, MAp map[string]any) any {
 
 }
 
-func AddEXpiry(val string, Expiry int, RedisMap map[string]any) int {
+func AddEXpiry(val string, Expiry int, RedisMap map[string]any, TTLMAp map[string]time.Time) int {
 	timeLimit := time.Now().Add(time.Duration(Expiry) * time.Second)
 	TimeDuration := time.Until(timeLimit)
 	time.AfterFunc(TimeDuration, func() {
@@ -88,10 +101,22 @@ func AddEXpiry(val string, Expiry int, RedisMap map[string]any) int {
 		delete(RedisMap, val)
 		mu.Unlock()
 	})
+	TTLMAp[val] = timeLimit
 	if _, ok := RedisMap[val]; ok {
 		return 1
 	}
 	return 0
+}
+
+// func TTLFunction(TTLMap map[string]time.Duration, value string) time.Duration {
+
+// 	TimeDuration := TTLMap[value]
+// 	return TimeDuration
+// }
+
+func GetTTL(val string, maps map[string]time.Time) time.Time {
+	t := maps[val]
+	return t
 }
 
 func DeleteKeys(Mape map[string]any, DelVals []string) {
